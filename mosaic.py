@@ -15,11 +15,11 @@ def load_images_from_folder(folder, tile_size):
         path = os.path.join(folder, file)
         try:
             img = Image.open(path).convert('RGB')
-            img = img.resize(tile_size)
+            img = img.resize(tile_size, Image.Resampling.LANCZOS)
             tiles.append(img)
             colors.append(average_color(img))
-        except:
-            pass
+        except Exception as e:
+            print(f"failed loading file {file}: {e}")
 
     return tiles, colors
 
@@ -49,10 +49,10 @@ def create_mosaic(target_image, tiles, tile_colors, grid_size):
 
 target_image = Image.open('target_image_2.jpeg').convert('RGB')
 
-tile_folder = "Forest"
+tile_folder = "Mountain"
 
-M = int(input("Enter number of tiles along width (e.g., 64): "))
-N = int(input("Enter number of tiles along height (e.g., 64): "))
+M = 100
+N = 100
 grid_size = (M, N)
 
 tile_w = target_image.size[0] // M
