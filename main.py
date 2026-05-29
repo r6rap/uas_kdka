@@ -1,79 +1,105 @@
 from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 
 m = 64
 n = 64
 
-folder = "Building"
+def get_folder_avg_rgb(folder):
 
-r, g, b = 0.0, 0.0, 0.0
+    avg_rgb = []
+    img_paths = []
 
-for file in os.listdir(folder):
-    img_path = os.path.join(folder, file)
+    for file in os.listdir(folder):
+        file_path = os.path.join(folder, file)
 
-    try:
-        with Image.open(img_path) as img:
-            img_rgb = img.convert('RGB')
+        if not os.path.isfile(file_path):
+            continue
 
-            img_array = np.array(img_rgb)
+        try:
+            with Image.open(file_path) as img:
 
-            avg_r, avg_g, avg_b = np.mean(img_array, axis=(0, 1))
+                img_rgb = img.convert("RGB")
 
-            print(
-                f"{file}: "
-                f"({avg_r:.2f}, {avg_g:.2f}, {avg_b:.2f})"
-            )
+                img_array = np.array(img_rgb)
 
-    except Exception as e:
-        print(f"failed: {file} = {e}")
+                avg_r, avg_g, avg_b = np.mean(img_array, axis=(0, 1))
 
-avg_color_pixel = np.zeros((n, m, 3))
+                avg_rgb.append((avg_r, avg_g, avg_b))
+                img_paths.append(file_path)
 
-img = Image.open('target_image.jpeg')
+        except Exception as e:
+            print(f"failed: {file} = {e}")
 
-width, height = img.size
+    return np.array(avg_rgb), img_paths
 
-grid_w = width // m
-grid_h = height // n
+def get_avg_rgb_per_grid(image_path, m, n):
 
-img_array = np.array(img)
+    img = Image.open(image_path).convert("RGB")
 
-plt.figure(figsize=(10, 10))
-plt.imshow(img_array)
+    width, height = img.size
 
-for x in range(0, width, grid_w):
-    plt.axvline(x=x, color='red', linewidth=0.3)
+    grid_w = width // m
+    grid_h = height // n
 
-for y in range(0, height, grid_h):
-    plt.axhline(y=y, color='red', linewidth=0.3)
+    img_array = np.array(img)
 
-for row in range(n):
+    avg_color_pixel = np.zeros((n, m, 3))
 
-    for col in range(m):
+    for row in range(n):
 
-        x1 = col * grid_w
-        x2 = x1 + grid_w
+        for col in range(m):
 
-        y1 = row * grid_h
-        y2 = y1 + grid_h
+            x1 = col * grid_w
+            x2 = x1 + grid_w
 
-        tile = img_array[y1:y2, x1:x2]
+            y1 = row * grid_h
+            y2 = y1 + grid_h
 
-        avg_rgb = tile.mean(axis=(0, 1))
+            tile = img_array[y1:y2, x1:x2]
 
-        avg_color_pixel[row, col] = avg_rgb
+            avg_rgb = tile.mean(axis=(0, 1))
 
-print(avg_color_pixel.shape)
+            avg_color_pixel[row, col] = avg_rgb
 
-plt.title(f"{m} x {n} Grid")
-plt.ylim(height, 0)
-plt.show()
+    return avg_color_pixel
 
-preview = avg_color_pixel.astype(np.uint8)
+def knn_euclidean(target_rgb, dataset_rgb):
 
-plt.figure(figsize=(10, 10))
-plt.imshow(preview, interpolation='nearest')
-plt.title("pixel")
-plt.show()
+    rows, cols, _ = target_rgb.shape
+
+    nearest = np.zeros((rows, cols), dtype=int)
+
+    for row in range(rows):
+
+        for col in range(cols):
+
+            target_r, target_g, target_b = target_rgb[row, col]
+
+            min_distance = float('inf')
+            best_neighbor = -1
+
+            for i in range(len(dataset_rgb)):
+
+                dataset_r, dataset_g, dataset_b = dataset_rgb[i]
+
+                distance = np.sqrt(
+                    (target_r - dataset_r) ** 2 +
+                    (target_g - dataset_g) ** 2 +
+                    (target_b - dataset_b) ** 2
+                )
+
+                if distance < min_distance:
+                    min_distance = distance
+                    best_neighbor = i
+
+            nearest[row, col] = best_neighbor
+
+    return nearest
+
+
+avg_building, path_building = get_folder_avg_rgb("Building")
+avg_color_pixel = get_avg_rgb_per_grid("target_image.jpeg", m, n)
+nearest = knn_euclidean(avg_color_pixel, avg_building)
+print(nearest[0, 1])
+print(path_building[7])
