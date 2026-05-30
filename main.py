@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 import os
+import sys
 
 m = 64
 n = 64
@@ -120,16 +121,44 @@ def mosaic(nearest, img_path, target_width, target_height, grid_w, grid_h):
 
     return mosaic
 
+def knn_euclidean_api(target_rgb, dataset_rgb):
+    target_2d = target_rgb.reshape(-1, 3)
+    combine = target_2d[:, np.newaxis, :] - dataset_rgb[np.newaxis, :, :]
+    distances = np.sqrt(np.sum(combine**2, axis=2))
+    nearest_2d = np.argmin(distances, axis=1)
+    return nearest_2d.reshape(target_rgb.shape[:2])
+
+FOLDER_CATEGORY = {
+    "building": "assets/Building",
+    "cloud":    "assets/Cloud",
+    "nature":   "assets/Nature",
+    "vehicle":  "assets/Vehicle",
+}
+
+def run_mosaic(target_path, category, output_path, grid_m=64, grid_n=64):
+    folder = FOLDER_CATEGORY.get(category.lower())
+    if folder is None:
+        raise ValueError(f"Unknown category: {category}. Pilihan: {list(FOLDER_CATEGORY.keys())}")
+
+    print(f"1/4 loading image dari {folder}...")
+    avg_rgb, img_paths = get_folder_avg_rgb(folder)
+
+    print(f"2/4 menghitung avg RGB per grid dari {target_path}...")
+    avg_color_pixel, width, height, grid_w, grid_h = get_avg_rgb_per_grid(target_path, grid_m, grid_n)
+
+    print(f"3/4 KNN matching ({grid_m}x{grid_n} grid, {len(img_paths)} tiles)...")
+    nearest = knn_euclidean_api(avg_color_pixel, avg_rgb)
+
+    print(f"4/4 Menyusun mosaic: {output_path}")
+    result = mosaic(nearest, img_paths, width, height, grid_w, grid_h)
+    result.save(output_path)
+    print("selesai")
 
 
+if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        print("penggunaan: python main.py <target_image> <category> <output_path>")
+        print("       category: building | cloud | nature | vehicle")
+        sys.exit(1)
 
-avg_building, path_building = get_folder_avg_rgb("Building")
-avg_color_pixel, width, height, grid_w, grid_h = get_avg_rgb_per_grid("target_image.jpeg", m, n)
-nearest = knn_euclidean(avg_color_pixel, avg_building)
-print(nearest[0, 1])
-print(path_building[7])
-print("width: ",width, "height: ", height)
-print("grid_w: ", grid_w, "grid_h: ", grid_h)
-print("grid w * m: ", grid_w * m, "grid_h * n: ", grid_h * n)
-outputMosaic = mosaic(nearest, path_building, width, height, grid_w, grid_h)
-outputMosaic.save("result.jpg")
+    run_mosaic(sys.argv[1], sys.argv[2], sys.argv[3])

@@ -1,0 +1,32 @@
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+
+# Go dependency cache
+vendor/
+
+# Runtime folders — jangan commit hasil upload/output user
+uploads/*
+outputs/*
+cache/*
+
+# Kecuali folder-nya sendiri tetap ada di repo
+!uploads/.gitkeep
+!outputs/.gitkeep
+!cache/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+
+# OS
+.DS_Store
+Thumbs.db
