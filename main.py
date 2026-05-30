@@ -83,11 +83,7 @@ def knn_euclidean(target_rgb, dataset_rgb):
 
                 dataset_r, dataset_g, dataset_b = dataset_rgb[i]
 
-                distance = np.sqrt(
-                    (target_r - dataset_r) ** 2 +
-                    (target_g - dataset_g) ** 2 +
-                    (target_b - dataset_b) ** 2
-                )
+                distance = np.sqrt((target_r - dataset_r) ** 2 + (target_g - dataset_g) ** 2 + (target_b - dataset_b) ** 2)
 
                 if distance < min_distance:
                     min_distance = distance
@@ -99,6 +95,11 @@ def knn_euclidean(target_rgb, dataset_rgb):
 
 def mosaic(nearest, img_path, target_width, target_height, grid_w, grid_h):
 
+    tiles = []
+    for path in img_path:
+        img = Image.open(path).convert("RGB")
+        tiles.append(img)
+
     rows, cols = nearest.shape
 
     mosaic = Image.new("RGB", (target_width, target_height))
@@ -108,7 +109,7 @@ def mosaic(nearest, img_path, target_width, target_height, grid_w, grid_h):
 
             nearest_index = nearest[row, col]
 
-            tile = Image.open(img_path[nearest_index])
+            tile = tiles[nearest_index]
 
             tile = tile.resize((int(grid_w), int(grid_h)))
 
