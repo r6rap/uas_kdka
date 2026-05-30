@@ -39,8 +39,8 @@ def get_avg_rgb_per_grid(image_path, m, n):
 
     width, height = img.size
 
-    grid_w = width // m
-    grid_h = height // n
+    grid_w = width / m
+    grid_h = height / n
 
     img_array = np.array(img)
 
@@ -50,11 +50,11 @@ def get_avg_rgb_per_grid(image_path, m, n):
 
         for col in range(m):
 
-            x1 = col * grid_w
-            x2 = x1 + grid_w
+            x1 = int(col * grid_w)
+            x2 = int((col + 1) * grid_w)
 
-            y1 = row * grid_h
-            y2 = y1 + grid_h
+            y1 = int(row * grid_h)
+            y2 = int((row + 1) * grid_h)
 
             tile = img_array[y1:y2, x1:x2]
 
@@ -62,7 +62,7 @@ def get_avg_rgb_per_grid(image_path, m, n):
 
             avg_color_pixel[row, col] = avg_rgb
 
-    return avg_color_pixel
+    return avg_color_pixel, width, height, grid_w, grid_h
 
 def knn_euclidean(target_rgb, dataset_rgb):
 
@@ -97,9 +97,38 @@ def knn_euclidean(target_rgb, dataset_rgb):
 
     return nearest
 
+def mosaic(nearest, img_path, target_width, target_height, grid_w, grid_h):
+
+    rows, cols = nearest.shape
+
+    mosaic = Image.new("RGB", (target_width, target_height))
+
+    for row in range(rows):
+        for col in range(cols):
+
+            nearest_index = nearest[row, col]
+
+            tile = Image.open(img_path[nearest_index])
+
+            tile = tile.resize((int(grid_w), int(grid_h)))
+
+            x = col * grid_w
+            y = row * grid_h
+
+            mosaic.paste(tile, (int(x), int(y)))
+
+    return mosaic
+
+
+
 
 avg_building, path_building = get_folder_avg_rgb("Building")
-avg_color_pixel = get_avg_rgb_per_grid("target_image.jpeg", m, n)
+avg_color_pixel, width, height, grid_w, grid_h = get_avg_rgb_per_grid("target_image.jpeg", m, n)
 nearest = knn_euclidean(avg_color_pixel, avg_building)
 print(nearest[0, 1])
 print(path_building[7])
+print("width: ",width, "height: ", height)
+print("grid_w: ", grid_w, "grid_h: ", grid_h)
+print("grid w * m: ", grid_w * m, "grid_h * n: ", grid_h * n)
+outputMosaic = mosaic(nearest, path_building, width, height, grid_w, grid_h)
+outputMosaic.save("result.jpg")
