@@ -138,15 +138,25 @@ FOLDER_CATEGORY = {
 def run_mosaic(target_path, category, output_path, grid_m=64, grid_n=64):
     folder = FOLDER_CATEGORY.get(category.lower())
     if folder is None:
-        raise ValueError(f"Unknown category: {category}. Pilihan: {list(FOLDER_CATEGORY.keys())}")
+        raise ValueError(f"kategori tidak diketahui: {category}. Kategori: {list(FOLDER_CATEGORY.keys())}")
 
-    print(f"1/4 loading image dari {folder}...")
-    avg_rgb, img_paths = get_folder_avg_rgb(folder)
+    cache_path = os.path.join("cache", f"{category}_avg.npz")
 
-    print(f"2/4 menghitung avg RGB per grid dari {target_path}...")
+    if os.path.exists(cache_path):
+        print(f"1/4 ambil cache dari {cache_path}")
+        data = np.load(cache_path, allow_pickle=True)
+        avg_rgb = data['avg_rgb']
+        img_paths = list(data['paths'])
+    else:
+        print(f"1/4 ambil dataset dari {folder}")
+        avg_rgb, img_paths = get_folder_avg_rgb(folder)
+        np.savez(cache_path, avg_rgb=avg_rgb, paths=np.array(img_paths))
+        print(f"      Cache disimpan ke {cache_path}")
+
+    print(f"2/4 menghitung avg RGB per grid dari {target_path}")
     avg_color_pixel, width, height, grid_w, grid_h = get_avg_rgb_per_grid(target_path, grid_m, grid_n)
 
-    print(f"3/4 KNN matching ({grid_m}x{grid_n} grid, {len(img_paths)} tiles)...")
+    print(f"3/4 KNN matching ({grid_m}x{grid_n} grid, {len(img_paths)} tiles)")
     nearest = knn_euclidean_api(avg_color_pixel, avg_rgb)
 
     print(f"4/4 Menyusun mosaic: {output_path}")
