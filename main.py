@@ -92,7 +92,8 @@ def knn_euclidean(target_rgb, dataset_rgb):
 
             nearest[row, col] = best_neighbor
 
-    return nearest
+    print(dataset_rgb.shape)
+    return nearest, dataset_rgb.shape
 
 def knn_minkowski(target_rgb, dataset_rgb, p=3):
 
@@ -251,7 +252,7 @@ def run_mosaic(target_path, category, distance, output_path, grid_m=64, grid_n=6
         print(f"1/4 ambil dataset dari {folder}")
         avg_rgb, img_paths = get_folder_avg_rgb(folder)
         np.savez(cache_path, avg_rgb=avg_rgb, paths=np.array(img_paths))
-        print(f"Cache disimpan ke {cache_path}")
+        print(f"cache disimpan ke {cache_path}")
 
     print(f"2/4 menghitung avg RGB per grid dari {target_path}")
     avg_color_pixel, width, height, grid_w, grid_h = get_avg_rgb_per_grid(target_path, grid_m, grid_n)
@@ -259,7 +260,7 @@ def run_mosaic(target_path, category, distance, output_path, grid_m=64, grid_n=6
     distance_choice = distance.strip().lower()
     if distance_choice in ("1", "euclidean", "e"):
         print("menggunakan jarak Euclidean")
-        nearest = knn_euclidean(avg_color_pixel, avg_rgb)
+        nearest, shape_dataset = knn_euclidean(avg_color_pixel, avg_rgb)
     elif distance_choice in ("2", "minkowski", "mk"):
         print("menggunakan jarak Minkowski (p=3)")
         nearest = knn_minkowski(avg_color_pixel, avg_rgb, p=3)
@@ -288,6 +289,8 @@ def run_mosaic(target_path, category, distance, output_path, grid_m=64, grid_n=6
         print(f"Gagal menghitung MSE: {e}")
         print(f"Gagal menghitung PSNR: {e}")
         print(f"Gagal menghitung SSIM: {e}")
+
+    print(shape_dataset)
     print("selesai")
 
 
