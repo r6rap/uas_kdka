@@ -182,6 +182,52 @@ def mosaic(nearest, img_path, target_width, target_height, grid_w, grid_h):
 
     return mosaic
 
+def mse(target_image, mosaic_image):
+    img_1 = np.array(target_image).astype(np.float64)
+    img_2 = np.array(mosaic_image).astype(np.float64)
+
+    mse = np.mean((img_1 - img_2) ** 2)
+
+    return mse
+
+def psnr(target_image, mosaic_image):
+    nilai_mse = mse(target_image, mosaic_image)
+
+    if nilai_mse == 0:
+        return float('inf')
+    
+    max_pixel = 255.0
+    psnr = 10 * np.log10((max_pixel ** 2) / nilai_mse)
+
+    return psnr
+
+def ssim(target_image, mosaic_image):
+    img_1 = np.array(target_image).astype(np.float64)
+    img_2 = np.array(mosaic_image).astype(np.float64)
+
+    C1 = (0.01 * 255) ** 2
+    C2 = (0.03 * 255) ** 2
+
+    ssim_per_channel = []
+
+    for c in range(3):
+        ch1 = img_1[:, :, c]
+        ch2 = img_2[:, :, c]
+
+        mu1 = np.mean(ch1)
+        mu2 = np.mean(ch2)
+
+        sigma1_sq = np.var(ch1)
+        sigma2_sq = np.var(ch2)
+        sigma12   = np.mean((ch1 - mu1) * (ch2 - mu2))
+
+        numerator   = (2 * mu1 * mu2 + C1) * (2 * sigma12 + C2)
+        denominator = (mu1**2 + mu2**2 + C1) * (sigma1_sq + sigma2_sq + C2)
+
+        ssim_per_channel.append(numerator / denominator)
+
+    return float(np.mean(ssim_per_channel))
+
 FOLDER_CATEGORY = {
     "building": "assets/Building",
     "cloud":    "assets/Cloud",
@@ -229,6 +275,19 @@ def run_mosaic(target_path, category, distance, output_path, grid_m=64, grid_n=6
     print(f"4/4 Menyusun mosaic: {output_path}")
     result = mosaic(nearest, img_paths, width, height, grid_w, grid_h)
     result.save(output_path)
+
+    try:
+        target_img_obj = Image.open(target_path).convert("RGB")
+        nilai_mse = mse(target_img_obj, result)
+        nilai_psnr = psnr(target_img_obj, result)
+        nilai_ssim = ssim(target_img_obj, result)
+        print(f"MSE: {nilai_mse:.4f}")
+        print(f"PSNR: {nilai_psnr:.4f}")
+        print(f"SSIM: {nilai_ssim:.4f}")
+    except Exception as e:
+        print(f"Gagal menghitung MSE: {e}")
+        print(f"Gagal menghitung PSNR: {e}")
+        print(f"Gagal menghitung SSIM: {e}")
     print("selesai")
 
 
